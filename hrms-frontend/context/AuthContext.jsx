@@ -47,12 +47,22 @@ export function AuthProvider({ children }) {
 
   const login = useCallback(async (email, password) => {
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
-    const res = await fetch(`${backendUrl}/api/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
-    const data = await res.json();
+    let res;
+    try {
+      res = await fetch(`${backendUrl}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+    } catch {
+      throw new Error('Cannot reach the server. Check your connection or try again.');
+    }
+    let data;
+    try {
+      data = await res.json();
+    } catch {
+      throw new Error(`Server error (${res.status}). The backend may not be running.`);
+    }
     if (!data.success) throw new Error(data.message || 'Login failed');
 
     const { user: userData, session: sessionData } = data.data;
