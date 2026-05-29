@@ -8,7 +8,7 @@
   "env": {
     "NEXT_PUBLIC_SUPABASE_URL": "https://hymwvcspwtmcdkhdppwk.supabase.co",
     "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh5bXd2Y3Nwd3RtY2RraGRwcHdrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3Nzg0MDYsImV4cCI6MjA5MzM1NDQwNn0.Tl1s4EqtSdGQDd_cpJh2gS5kuzJTV0jxi7cz2PpP7c0",
-    "NEXT_PUBLIC_BACKEND_URL": "https://hrms-system-production-b613.up.railway.app",
+    "NEXT_PUBLIC_BACKEND_URL": "https://hrms-system-production-2965.up.railway.app",
     "NEXT_PUBLIC_FIREBASE_API_KEY": "dummy",
     "NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN": "dummy",
     "NEXT_PUBLIC_FIREBASE_PROJECT_ID": "dummy",
@@ -20,7 +20,7 @@
     "env": {
       "NEXT_PUBLIC_SUPABASE_URL": "https://hymwvcspwtmcdkhdppwk.supabase.co",
       "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh5bXd2Y3Nwd3RtY2RraGRwcHdrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3Nzg0MDYsImV4cCI6MjA5MzM1NDQwNn0.Tl1s4EqtSdGQDd_cpJh2gS5kuzJTV0jxi7cz2PpP7c0",
-      "NEXT_PUBLIC_BACKEND_URL": "https://hrms-system-production-b613.up.railway.app",
+      "NEXT_PUBLIC_BACKEND_URL": "https://hrms-system-production-2965.up.railway.app",
       "NEXT_PUBLIC_FIREBASE_API_KEY": "dummy",
       "NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN": "dummy",
       "NEXT_PUBLIC_FIREBASE_PROJECT_ID": "dummy",
