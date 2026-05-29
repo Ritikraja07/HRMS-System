@@ -54,9 +54,10 @@ function CountUp({ value, duration = 800 }) {
 }
 
 // ── KPI Balance Card ──────────────────────────────────────────────────────────
-function BalanceCard({ label, icon, color, hex, bg, total, used }) {
-  const remaining = Math.max(0, total - used);
-  const pct = total > 0 ? Math.round((used / total) * 100) : 0;
+function BalanceCard({ label, icon, color, hex, bg, total, used, carryForward = 0 }) {
+  const effectiveTotal = total + carryForward;
+  const remaining = Math.max(0, effectiveTotal - used);
+  const pct = effectiveTotal > 0 ? Math.round((used / effectiveTotal) * 100) : 0;
 
   return (
     <div style={{
@@ -76,17 +77,27 @@ function BalanceCard({ label, icon, color, hex, bg, total, used }) {
         </div>
         <div>
           <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</p>
-          <p style={{ margin: '2px 0 0', fontSize: 11.5, color: 'var(--color-text-light)', fontWeight: 500 }}>{used} used · {total} total</p>
+          <p style={{ margin: '2px 0 0', fontSize: 11.5, color: 'var(--color-text-light)', fontWeight: 500 }}>{used} used · {effectiveTotal} total</p>
         </div>
       </div>
 
       {/* Big number */}
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 14 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: carryForward > 0 ? 8 : 14 }}>
         <span style={{ fontSize: 36, fontWeight: 900, color: 'var(--color-text)', letterSpacing: '-2px', lineHeight: 1 }}>
           <CountUp value={remaining} />
         </span>
         <span style={{ fontSize: 13, color: 'var(--color-text-muted)', fontWeight: 600 }}>days left</span>
       </div>
+
+      {/* Carry forward badge */}
+      {carryForward > 0 && (
+        <div style={{ marginBottom: 10 }}>
+          <span style={{ fontSize: 11, fontWeight: 700, color: '#059669', background: 'rgba(5,150,105,0.1)', padding: '2px 9px', borderRadius: 6, border: '1px solid rgba(5,150,105,0.22)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>
+            +{carryForward} carried forward
+          </span>
+        </div>
+      )}
 
       {/* Progress bar */}
       <div>
@@ -103,7 +114,7 @@ function BalanceCard({ label, icon, color, hex, bg, total, used }) {
 }
 
 // ── Apply Leave Modal ─────────────────────────────────────────────────────────
-function ApplyLeaveModal({ onClose, onSubmitted, balance, used }) {
+function ApplyLeaveModal({ onClose, onSubmitted, balance, used, carryForward }) {
   const [form, setForm] = useState({ type: 'casual', from_date: '', to_date: '', reason: '' });
   const [saving, setSaving] = useState(false);
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
@@ -114,7 +125,10 @@ function ApplyLeaveModal({ onClose, onSubmitted, balance, used }) {
   }, [form.from_date, form.to_date]);
 
   const meta = getMeta(form.type);
-  const available = meta.balanceKey ? Math.max(0, (Number(balance[meta.balanceKey]) || 0) - (Number(used[form.type]) || 0)) : null;
+  // carry forward map: leave type → carry forward days
+  const CF_KEY = { casual: 'casual', sick: 'sick', earned: 'earned' };
+  const cf = meta.balanceKey ? (Number((carryForward || {})[CF_KEY[form.type]]) || 0) : 0;
+  const available = meta.balanceKey ? Math.max(0, (Number(balance[meta.balanceKey]) || 0) + cf - (Number(used[form.type]) || 0)) : null;
   const insufficient = available !== null && days > available;
 
   const handleSubmit = async (e) => {
@@ -162,7 +176,8 @@ function ApplyLeaveModal({ onClose, onSubmitted, balance, used }) {
               {LEAVE_TYPES.map(t => {
                 const m = getMeta(t.value);
                 const isSelected = form.type === t.value;
-                const avail = m.balanceKey ? Math.max(0, (Number(balance[m.balanceKey]) || 0) - (Number(used[t.value]) || 0)) : null;
+                const typeCf = m.balanceKey ? (Number((carryForward || {})[t.value]) || 0) : 0;
+                const avail = m.balanceKey ? Math.max(0, (Number(balance[m.balanceKey]) || 0) + typeCf - (Number(used[t.value]) || 0)) : null;
                 return (
                   <button type="button" key={t.value} onClick={() => set('type', t.value)} style={{
                     padding: '10px 14px', borderRadius: 10, cursor: 'pointer', textAlign: 'left',
@@ -243,15 +258,22 @@ function ApplyLeaveModal({ onClose, onSubmitted, balance, used }) {
 }
 
 // ── Apply WFH Modal ───────────────────────────────────────────────────────────
-function ApplyWfhModal({ onClose, onSubmitted }) {
+function ApplyWfhModal({ onClose, onSubmitted, wfhMonthly }) {
   const [form, setForm] = useState({ from_date: '', to_date: '', reason: '' });
   const [saving, setSaving] = useState(false);
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
+
+  const monthlyUsed  = wfhMonthly?.monthly_used  ?? 0;
+  const monthlyLimit = wfhMonthly?.monthly_limit  ?? 4;
+  const remaining    = Math.max(0, monthlyLimit - monthlyUsed);
+  const atLimit      = monthlyUsed >= monthlyLimit;
 
   const days = useMemo(() => {
     if (!form.from_date || !form.to_date) return 0;
     return Math.max(1, Math.floor((new Date(form.to_date) - new Date(form.from_date)) / 86400000) + 1);
   }, [form.from_date, form.to_date]);
+
+  const exceedsRemaining = days > 0 && days > remaining;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -289,13 +311,23 @@ function ApplyWfhModal({ onClose, onSubmitted }) {
 
         <form onSubmit={handleSubmit} style={{ padding: '22px 26px', display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-          {/* Info banner */}
-          <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '12px 14px', borderRadius: 10, background: 'rgba(5,150,105,0.07)', border: '1px solid rgba(5,150,105,0.2)' }}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginTop: 1, flexShrink: 0 }}>
-              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-            </svg>
-            <p style={{ margin: 0, fontSize: 12.5, color: '#059669', lineHeight: 1.5, fontWeight: 500 }}>
-              WFH requests require manager approval. You'll be notified once reviewed.
+          {/* Monthly WFH quota meter */}
+          <div style={{ padding: '12px 14px', borderRadius: 10, background: atLimit ? 'var(--color-danger-bg)' : 'rgba(5,150,105,0.07)', border: `1px solid ${atLimit ? 'var(--color-danger-border)' : 'rgba(5,150,105,0.2)'}` }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: atLimit ? 'var(--color-danger)' : '#059669', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                Monthly WFH Quota
+              </span>
+              <span style={{ fontSize: 13, fontWeight: 800, color: atLimit ? 'var(--color-danger)' : '#059669' }}>
+                {monthlyUsed} / {monthlyLimit} days used
+              </span>
+            </div>
+            <div style={{ height: 6, background: 'var(--color-border)', borderRadius: 10, overflow: 'hidden', marginBottom: 7 }}>
+              <div style={{ height: '100%', width: `${Math.min(100, (monthlyUsed / monthlyLimit) * 100)}%`, background: atLimit ? 'var(--color-danger)' : monthlyUsed >= monthlyLimit - 1 ? '#d97706' : '#059669', borderRadius: 10, transition: 'width 0.8s ease' }} />
+            </div>
+            <p style={{ margin: 0, fontSize: 11.5, color: atLimit ? 'var(--color-danger)' : 'var(--color-text-muted)', fontWeight: 500 }}>
+              {atLimit
+                ? 'You have used all WFH days for this month.'
+                : `${remaining} day${remaining !== 1 ? 's' : ''} remaining this month · Requires manager approval`}
             </p>
           </div>
 
@@ -342,8 +374,8 @@ function ApplyWfhModal({ onClose, onSubmitted }) {
             <button type="button" onClick={onClose} style={{ flex: 1, padding: '11px', border: '1px solid var(--color-border)', borderRadius: 9, background: 'var(--color-bg-subtle)', color: 'var(--color-text)', fontSize: 13.5, fontWeight: 600, cursor: 'pointer' }}>
               Cancel
             </button>
-            <button type="submit" disabled={saving} style={{ flex: 2, padding: '11px', border: 'none', borderRadius: 9, background: saving ? 'var(--color-border)' : 'linear-gradient(135deg, #059669, #047857)', color: saving ? 'var(--color-text-muted)' : '#fff', fontSize: 13.5, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', boxShadow: saving ? 'none' : '0 4px 14px rgba(5,150,105,0.3)', transition: 'all 0.2s' }}>
-              {saving ? 'Submitting…' : 'Submit WFH Request'}
+            <button type="submit" disabled={saving || atLimit || exceedsRemaining} style={{ flex: 2, padding: '11px', border: 'none', borderRadius: 9, background: saving || atLimit || exceedsRemaining ? 'var(--color-border)' : 'linear-gradient(135deg, #059669, #047857)', color: saving || atLimit || exceedsRemaining ? 'var(--color-text-muted)' : '#fff', fontSize: 13.5, fontWeight: 700, cursor: saving || atLimit || exceedsRemaining ? 'not-allowed' : 'pointer', boxShadow: saving || atLimit || exceedsRemaining ? 'none' : '0 4px 14px rgba(5,150,105,0.3)', transition: 'all 0.2s' }}>
+              {saving ? 'Submitting…' : atLimit ? 'Monthly limit reached' : exceedsRemaining ? `Only ${remaining} day${remaining !== 1 ? 's' : ''} left` : 'Submit WFH Request'}
             </button>
           </div>
         </form>
@@ -495,13 +527,15 @@ function LeaveRow({ leave, onCancel }) {
 export default function LeavePage() {
   const { user, session } = useAuth();
   const { on } = useSocket(user?.id, session?.access_token);
-  const [leaves,     setLeaves]     = useState([]);
+  const [leaves,      setLeaves]      = useState([]);
   const [wfhRequests, setWfhRequests] = useState([]);
-  const [balance,    setBalance]    = useState({});
-  const [used,       setUsed]       = useState({});
-  const [loading,    setLoading]    = useState(true);
-  const [wfhLoading, setWfhLoading] = useState(true);
-  const [activeTab,  setActiveTab]  = useState('all');
+  const [balance,     setBalance]     = useState({});
+  const [used,        setUsed]        = useState({});
+  const [carryForward, setCarryForward] = useState({ casual: 0, sick: 0, earned: 0 });
+  const [wfhMonthly,  setWfhMonthly]  = useState({ monthly_used: 0, monthly_limit: 4 });
+  const [loading,     setLoading]     = useState(true);
+  const [wfhLoading,  setWfhLoading]  = useState(true);
+  const [activeTab,   setActiveTab]   = useState('all');
   const [showModal,    setShowModal]    = useState(false);
   const [showWfhModal, setShowWfhModal] = useState(false);
 
@@ -510,7 +544,11 @@ export default function LeavePage() {
     try {
       const [lr, br] = await Promise.all([api.get('/api/leave'), api.get('/api/leave/balance')]);
       if (lr.data.success) setLeaves(lr.data.data.leave_requests || []);
-      if (br.data.success) { setBalance(br.data.data.balance || {}); setUsed(br.data.data.used || {}); }
+      if (br.data.success) {
+        setBalance(br.data.data.balance || {});
+        setUsed(br.data.data.used || {});
+        setCarryForward(br.data.data.carry_forward || { casual: 0, sick: 0, earned: 0 });
+      }
     } catch {}
     setLoading(false);
   }, []);
@@ -519,7 +557,13 @@ export default function LeavePage() {
     setWfhLoading(true);
     try {
       const res = await api.get('/api/wfh');
-      if (res.data.success) setWfhRequests(res.data.data.wfh_requests || []);
+      if (res.data.success) {
+        setWfhRequests(res.data.data.wfh_requests || []);
+        setWfhMonthly({
+          monthly_used:  res.data.data.monthly_used  ?? 0,
+          monthly_limit: res.data.data.monthly_limit ?? 4,
+        });
+      }
     } catch {}
     setWfhLoading(false);
   }, []);
@@ -563,8 +607,9 @@ export default function LeavePage() {
 
   const filtered = activeTab === 'all' ? leaves : leaves.filter(l => l.status === activeTab);
 
-  const totalBalance = ['casual_leave','sick_leave','earned_leave'].reduce((s, k) => s + (Number(balance[k]) || 0), 0);
-  const totalUsed    = ['casual','sick','earned'].reduce((s, k) => s + (Number(used[k]) || 0), 0);
+  const totalBalance     = ['casual_leave','sick_leave','earned_leave'].reduce((s, k) => s + (Number(balance[k]) || 0), 0);
+  const totalUsed        = ['casual','sick','earned'].reduce((s, k) => s + (Number(used[k]) || 0), 0);
+  const totalCarryForward = (Number(carryForward.casual) || 0) + (Number(carryForward.sick) || 0) + (Number(carryForward.earned) || 0);
 
   const TABS = [
     { key: 'all',      label: 'All',      color: '#2563eb' },
@@ -610,22 +655,25 @@ export default function LeavePage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
           <BalanceCard
             label="Total Balance" hex="#2563eb" color="var(--color-info)" bg="var(--color-info-bg)"
-            total={totalBalance} used={totalUsed}
+            total={totalBalance} used={totalUsed} carryForward={totalCarryForward}
             icon={<TotalBalanceIcon />}
           />
           <BalanceCard
             label="Casual Leave" hex="#2563eb" color="var(--color-info)" bg="var(--color-info-bg)"
             total={Number(balance.casual_leave) || 0} used={Number(used.casual) || 0}
+            carryForward={Number(carryForward.casual) || 0}
             icon={<CasualLeaveIcon />}
           />
           <BalanceCard
             label="Sick Leave" hex="#ea580c" color="var(--color-orange)" bg="var(--color-orange-bg)"
             total={Number(balance.sick_leave) || 0} used={Number(used.sick) || 0}
+            carryForward={Number(carryForward.sick) || 0}
             icon={<SickLeaveIcon />}
           />
           <BalanceCard
             label="Earned Leave" hex="#7c3aed" color="var(--color-purple)" bg="var(--color-purple-bg)"
             total={Number(balance.earned_leave) || 0} used={Number(used.earned) || 0}
+            carryForward={Number(carryForward.earned) || 0}
             icon={<EarnedLeaveIcon />}
           />
         </div>
@@ -708,10 +756,16 @@ export default function LeavePage() {
                 <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--color-text-muted)' }}>Your WFH request history</p>
               </div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontSize: 12, color: 'var(--color-text-light)', fontWeight: 500 }}>
-                {wfhRequests.length} record{wfhRequests.length !== 1 ? 's' : ''}
-              </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              {/* Monthly quota pill */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '5px 12px', borderRadius: 20, background: wfhMonthly.monthly_used >= wfhMonthly.monthly_limit ? 'var(--color-danger-bg)' : 'rgba(5,150,105,0.08)', border: `1px solid ${wfhMonthly.monthly_used >= wfhMonthly.monthly_limit ? 'var(--color-danger-border)' : 'rgba(5,150,105,0.22)'}` }}>
+                {[...Array(wfhMonthly.monthly_limit)].map((_, i) => (
+                  <span key={i} style={{ width: 8, height: 8, borderRadius: '50%', background: i < wfhMonthly.monthly_used ? (wfhMonthly.monthly_used >= wfhMonthly.monthly_limit ? 'var(--color-danger)' : '#059669') : 'var(--color-border)', display: 'block', flexShrink: 0 }} />
+                ))}
+                <span style={{ fontSize: 11.5, fontWeight: 700, color: wfhMonthly.monthly_used >= wfhMonthly.monthly_limit ? 'var(--color-danger)' : '#059669', marginLeft: 2 }}>
+                  {wfhMonthly.monthly_used}/{wfhMonthly.monthly_limit} this month
+                </span>
+              </div>
               <button onClick={() => setShowWfhModal(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', border: '1.5px solid rgba(5,150,105,0.35)', borderRadius: 8, background: 'rgba(5,150,105,0.07)', color: '#059669', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s' }}
                 onMouseEnter={e => { e.currentTarget.style.background = 'rgba(5,150,105,0.14)'; }}
                 onMouseLeave={e => { e.currentTarget.style.background = 'rgba(5,150,105,0.07)'; }}>
@@ -757,12 +811,14 @@ export default function LeavePage() {
           onSubmitted={() => { setShowModal(false); fetchData(); }}
           balance={balance}
           used={used}
+          carryForward={carryForward}
         />
       )}
       {showWfhModal && (
         <ApplyWfhModal
           onClose={() => setShowWfhModal(false)}
           onSubmitted={() => { setShowWfhModal(false); fetchWfh(); }}
+          wfhMonthly={wfhMonthly}
         />
       )}
     </AppLayout>

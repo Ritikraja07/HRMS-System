@@ -3,6 +3,32 @@ const { sendSuccess, sendError } = require('../utils/response');
 const { validateWfhRequest } = require('../utils/validators');
 const { sendPushNotification } = require('../utils/fcm');
 
+const WFH_MONTHLY_LIMIT = 4;
+
+function monthBounds() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const last = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  return { start: `${y}-${m}-01`, end: `${y}-${m}-${last}` };
+}
+
+function calcDays(from, to) {
+  return Math.max(1, Math.floor((new Date(to) - new Date(from)) / 86400000) + 1);
+}
+
+async function getMonthlyUsed(userId) {
+  const { start, end } = monthBounds();
+  const { data } = await supabaseAdmin
+    .from('wfh_requests')
+    .select('from_date, to_date')
+    .eq('user_id', userId)
+    .in('status', ['pending', 'approved'])
+    .gte('from_date', start)
+    .lte('from_date', end);
+  return (data || []).reduce((sum, w) => sum + calcDays(w.from_date, w.to_date), 0);
+}
+
 const getWfhRequests = async (req, res) => {
   try {
     const isManagerOrAdmin = ['manager', 'admin', 'super_admin'].includes(req.user.role);
@@ -24,7 +50,14 @@ const getWfhRequests = async (req, res) => {
     const { data, error } = await query;
     if (error) return sendError(res, error.message, 400);
 
-    return sendSuccess(res, { wfh_requests: data }, 'WFH requests fetched');
+    // Monthly usage — always computed for the requesting user
+    const monthly_used = await getMonthlyUsed(req.user.id);
+
+    return sendSuccess(res, {
+      wfh_requests: data,
+      monthly_used,
+      monthly_limit: WFH_MONTHLY_LIMIT,
+    }, 'WFH requests fetched');
   } catch (err) {
     console.error('getWfhRequests error:', err);
     return sendError(res, 'Failed to fetch WFH requests', 500);
@@ -38,6 +71,20 @@ const createWfhRequest = async (req, res) => {
 
     if (new Date(value.to_date) < new Date(value.from_date)) {
       return sendError(res, 'End date must be after start date', 400);
+    }
+
+    // Enforce monthly WFH day limit
+    const requestedDays = calcDays(value.from_date, value.to_date);
+    const monthlyUsed   = await getMonthlyUsed(req.user.id);
+    if (monthlyUsed + requestedDays > WFH_MONTHLY_LIMIT) {
+      const remaining = Math.max(0, WFH_MONTHLY_LIMIT - monthlyUsed);
+      return sendError(
+        res,
+        remaining === 0
+          ? `You have used all ${WFH_MONTHLY_LIMIT} WFH days for this month.`
+          : `Only ${remaining} WFH day(s) remaining this month (limit: ${WFH_MONTHLY_LIMIT}).`,
+        400
+      );
     }
 
     // Check for overlapping pending/approved WFH requests

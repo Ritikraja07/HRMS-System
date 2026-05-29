@@ -3,32 +3,81 @@ const { sendSuccess, sendError } = require('../utils/response');
 const { validateLeaveRequest } = require('../utils/validators');
 const { sendPushNotification } = require('../utils/fcm');
 
+// Carry-forward caps (days): sick leave never carries forward
+const CF_CAP = { casual: 10, sick: 0, earned: 15 };
+
+async function resolveBalance(userId, year) {
+  const { data: existing } = await supabaseAdmin
+    .from('leave_balances').select('*')
+    .eq('user_id', userId).eq('year', year).maybeSingle();
+
+  if (existing) return existing;
+
+  // First access of new year — calculate carry forward from previous year
+  const prevYear = year - 1;
+  const { data: prev } = await supabaseAdmin
+    .from('leave_balances').select('*')
+    .eq('user_id', userId).eq('year', prevYear).maybeSingle();
+
+  let cfCasual = 0, cfSick = 0, cfEarned = 0;
+
+  if (prev) {
+    const { data: prevUsed } = await supabaseAdmin
+      .from('leave_requests').select('type, days')
+      .eq('user_id', userId).eq('status', 'approved')
+      .gte('from_date', `${prevYear}-01-01`).lte('from_date', `${prevYear}-12-31`);
+
+    const byType = (prevUsed || []).reduce((a, l) => {
+      a[l.type] = (a[l.type] || 0) + parseFloat(l.days); return a;
+    }, {});
+
+    cfCasual = Math.min(Math.max(0, (prev.casual_leave || 12) - (byType.casual || 0)), CF_CAP.casual);
+    cfSick   = 0; // sick leave does not carry forward
+    cfEarned = Math.min(Math.max(0, (prev.earned_leave || 15) - (byType.earned || 0)), CF_CAP.earned);
+  }
+
+  const { data: created } = await supabaseAdmin
+    .from('leave_balances')
+    .insert({
+      user_id: userId, year,
+      casual_leave: 12, sick_leave: 10, earned_leave: 15,
+      maternity_leave: 90, paternity_leave: 15,
+      carry_forward_casual: cfCasual,
+      carry_forward_sick:   cfSick,
+      carry_forward_earned: cfEarned,
+      carry_forward_set_at: new Date().toISOString(),
+    })
+    .select().single();
+
+  return created || {
+    casual_leave: 12, sick_leave: 10, earned_leave: 15,
+    maternity_leave: 90, paternity_leave: 15,
+    carry_forward_casual: cfCasual, carry_forward_sick: cfSick, carry_forward_earned: cfEarned,
+  };
+}
+
 const getLeaveBalance = async (req, res) => {
   try {
     const year = new Date().getFullYear();
-    const { data, error } = await supabaseAdmin
-      .from('leave_balances')
-      .select('*')
-      .eq('user_id', req.user.id)
-      .eq('year', year)
-      .maybeSingle();
+    const balance = await resolveBalance(req.user.id, year);
 
-    // Calculate used leave
-    const { data: used } = await supabaseAdmin
-      .from('leave_requests')
-      .select('type, days')
-      .eq('user_id', req.user.id)
-      .eq('status', 'approved')
+    const { data: usedRows } = await supabaseAdmin
+      .from('leave_requests').select('type, days')
+      .eq('user_id', req.user.id).eq('status', 'approved')
       .gte('from_date', `${year}-01-01`);
 
-    const usedByType = (used || []).reduce((acc, l) => {
-      acc[l.type] = (acc[l.type] || 0) + parseFloat(l.days);
-      return acc;
+    const used = (usedRows || []).reduce((a, l) => {
+      a[l.type] = (a[l.type] || 0) + parseFloat(l.days); return a;
     }, {});
 
     return sendSuccess(res, {
-      balance: data || { casual_leave: 12, sick_leave: 10, earned_leave: 15 },
-      used: usedByType,
+      balance,
+      used,
+      carry_forward: {
+        casual: balance.carry_forward_casual || 0,
+        sick:   balance.carry_forward_sick   || 0,
+        earned: balance.carry_forward_earned || 0,
+      },
     }, 'Leave balance fetched');
   } catch (err) {
     console.error('getLeaveBalance error:', err);

@@ -105,10 +105,12 @@ export default function DashboardPage() {
   ];
 
   const quickLinks = [
-    { label: 'Punch In / Out', sub: 'Track work hours',  href: '/punch',      color: '#2563eb', iconBg: 'rgba(37,99,235,0.12)',   icon: <PunchIcon /> },
-    { label: 'My Tasks',       sub: 'View assignments',  href: '/tasks',      color: '#16a34a', iconBg: 'rgba(22,163,74,0.12)',   icon: <ListIcon /> },
-    { label: 'Attendance',     sub: 'Monthly history',   href: '/attendance', color: '#d97706', iconBg: 'rgba(217,119,6,0.12)',   icon: <CalIcon /> },
-    { label: 'Projects',       sub: 'Active work',       href: '/projects',   color: '#7c3aed', iconBg: 'rgba(124,58,237,0.12)',  icon: <FolderIcon /> },
+    { label: 'Punch In / Out',   sub: 'Track work hours',    href: '/punch',      color: '#2563eb', iconBg: 'rgba(37,99,235,0.12)',  icon: <PunchIcon /> },
+    { label: 'My Tasks',         sub: 'View assignments',    href: '/tasks',      color: '#16a34a', iconBg: 'rgba(22,163,74,0.12)',  icon: <ListIcon /> },
+    { label: 'Attendance',       sub: 'Monthly history',     href: '/attendance', color: '#d97706', iconBg: 'rgba(217,119,6,0.12)',  icon: <CalIcon /> },
+    { label: 'Projects',         sub: 'Active work',         href: '/projects',   color: '#7c3aed', iconBg: 'rgba(124,58,237,0.12)', icon: <FolderIcon /> },
+    { label: 'Work From Home',   sub: 'Apply for WFH',       href: '/leave',      color: '#059669', iconBg: 'rgba(5,150,105,0.12)',  icon: <HomeIcon /> },
+    { label: 'Leave Requests',   sub: 'Manage your leaves',  href: '/leave',      color: '#0891b2', iconBg: 'rgba(8,145,178,0.12)',  icon: <LeaveIcon /> },
   ];
 
   const attStatus = isPunchedIn ? { label: 'Working',    dot: '#22c55e', bg: 'var(--color-success-bg)', color: 'var(--color-success)' }
@@ -319,7 +321,7 @@ export default function DashboardPage() {
                 <p style={{ fontSize: 12, color: 'var(--color-text-muted)', margin: '2px 0 0' }}>Jump to your most-used features</p>
               </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
               {quickLinks.map(a => (
                 <Link key={a.href} href={a.href} className="qlink" style={{
                   display: 'flex', alignItems: 'center', gap: 14, padding: '16px 18px',
@@ -438,3 +440,5 @@ function PunchIcon({ size = 18 }) { return <svg width={size} height={size} viewB
 function ListIcon()   { return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>; }
 function CalIcon()    { return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>; }
 function FolderIcon() { return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>; }
+function HomeIcon()   { return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>; }
+function LeaveIcon()  { return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M8 14h.01M12 14h.01M16 14h.01"/></svg>; }
