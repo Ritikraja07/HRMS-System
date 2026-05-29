@@ -159,7 +159,7 @@ const getReports = async (req, res) => {
 
       const totalGross = (data || []).reduce((sum, p) => sum + parseFloat(p.gross_salary || 0), 0);
       const totalNet = (data || []).reduce((sum, p) => sum + parseFloat(p.net_salary || 0), 0);
-      const totalDed = (data || []).reduce((sum, p) => sum + parseFloat(p.total_deductions || 0), 0);
+      const totalDed = (data || []).reduce((sum, p) => sum + parseFloat(p.deductions || 0), 0);
 
       stats = { total_payslips: data?.length || 0, total_gross: totalGross, total_net: totalNet, total_deductions: totalDed };
       
