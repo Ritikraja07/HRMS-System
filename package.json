@@ -1,0 +1,20 @@
+{
+  "name": "hrms-monorepo",
+  "version": "1.0.0",
+  "description": "HRMS Full-Stack Monorepo — Next.js frontend + Express backend",
+  "private": true,
+  "scripts": {
+    "install:all": "npm install --prefix hrms-backend && npm install --prefix hrms-frontend",
+    "dev:backend": "npm run dev --prefix hrms-backend",
+    "dev:frontend": "npm run dev --prefix hrms-frontend",
+    "start:backend": "npm start --prefix hrms-backend",
+    "start:frontend": "npm start --prefix hrms-frontend",
+    "build:frontend": "npm run build --prefix hrms-frontend",
+    "lint:backend": "npm run lint --prefix hrms-backend",
+    "lint:frontend": "npm run lint --prefix hrms-frontend",
+    "lint": "npm run lint:backend && npm run lint:frontend"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

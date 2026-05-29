@@ -1,0 +1,10 @@
+const express = require('express');
+const router = express.Router();
+const { getDashboardStats, createEmployee, getReports, deleteEmployee } = require('../controllers/adminController');
+const { verifyToken } = require('../middleware/verifyToken');
+const { isAdmin } = require('../middleware/checkRole');
+router.get('/dashboard', verifyToken, isAdmin, getDashboardStats);
+router.post('/employees', verifyToken, isAdmin, createEmployee);
+router.delete('/employees/:id', verifyToken, isAdmin, deleteEmployee);
+router.get('/reports', verifyToken, isAdmin, getReports);
+module.exports = router;

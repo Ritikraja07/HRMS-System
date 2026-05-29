@@ -1,0 +1,10 @@
+const express = require('express');
+const router = express.Router();
+const { getShifts, createShift, updateShift, deleteShift } = require('../controllers/shiftController');
+const { verifyToken } = require('../middleware/verifyToken');
+const { isAdmin } = require('../middleware/checkRole');
+router.get('/', verifyToken, getShifts);
+router.post('/', verifyToken, isAdmin, createShift);
+router.put('/:id', verifyToken, isAdmin, updateShift);
+router.delete('/:id', verifyToken, isAdmin, deleteShift);
+module.exports = router;
