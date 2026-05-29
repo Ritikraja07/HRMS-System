@@ -82,6 +82,15 @@ const validateMessage = (data) => {
   return schema.validate(data);
 };
 
+const validateWfhRequest = (data) => {
+  const schema = Joi.object({
+    from_date: Joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/).required(),
+    to_date: Joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/).required(),
+    reason: Joi.string().min(10).max(1000).required(),
+  });
+  return schema.validate(data);
+};
+
 module.exports = {
   validateAttendance,
   validateTask,
@@ -90,4 +99,5 @@ module.exports = {
   validateDailyUpdate,
   validateUser,
   validateMessage,
+  validateWfhRequest,
 };

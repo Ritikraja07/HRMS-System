@@ -25,6 +25,7 @@ const adminRoutes = require('./routes/admin');
 const managerRoutes = require('./routes/manager');
 const shiftsRoutes         = require('./routes/shifts');
 const announcementsRoutes  = require('./routes/announcements');
+const wfhRoutes            = require('./routes/wfh');
 
 const app = express();
 const httpServer = http.createServer(app);
@@ -97,6 +98,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/manager', managerRoutes);
 app.use('/api/shifts',        shiftsRoutes);
 app.use('/api/announcements', announcementsRoutes);
+app.use('/api/wfh',           wfhRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {

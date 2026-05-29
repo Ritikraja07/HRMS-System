@@ -242,6 +242,184 @@ function ApplyLeaveModal({ onClose, onSubmitted, balance, used }) {
   );
 }
 
+// ── Apply WFH Modal ───────────────────────────────────────────────────────────
+function ApplyWfhModal({ onClose, onSubmitted }) {
+  const [form, setForm] = useState({ from_date: '', to_date: '', reason: '' });
+  const [saving, setSaving] = useState(false);
+  const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
+
+  const days = useMemo(() => {
+    if (!form.from_date || !form.to_date) return 0;
+    return Math.max(1, Math.floor((new Date(form.to_date) - new Date(form.from_date)) / 86400000) + 1);
+  }, [form.from_date, form.to_date]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.from_date || !form.to_date) { toast.error('Please select a date range'); return; }
+    if (form.reason.trim().length < 10) { toast.error('Reason must be at least 10 characters'); return; }
+    if (new Date(form.to_date) < new Date(form.from_date)) { toast.error('End date must be after start date'); return; }
+    setSaving(true);
+    try {
+      await api.post('/api/wfh', form);
+      toast.success('WFH request submitted successfully!');
+      onSubmitted();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to submit WFH request');
+    } finally { setSaving(false); }
+  };
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, backdropFilter: 'blur(3px)' }}
+      onClick={e => e.target === e.currentTarget && onClose()}>
+      <div style={{ background: 'var(--color-card)', borderRadius: 20, width: '100%', maxWidth: 500, maxHeight: '92vh', overflow: 'auto', boxShadow: '0 30px 80px rgba(0,0,0,0.25)' }}>
+
+        {/* Modal header */}
+        <div style={{ padding: '22px 26px 18px', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div style={{ width: 44, height: 44, borderRadius: 12, background: 'linear-gradient(135deg, #059669 0%, #0891b2 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <WfhFormIcon />
+          </div>
+          <div style={{ flex: 1 }}>
+            <h2 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: 'var(--color-text)' }}>Apply for Work From Home</h2>
+            <p style={{ margin: '2px 0 0', fontSize: 12.5, color: 'var(--color-text-muted)' }}>Submit a WFH request for manager approval</p>
+          </div>
+          <button onClick={onClose} style={{ background: 'var(--color-bg-subtle)', border: '1px solid var(--color-border)', borderRadius: 8, width: 34, height: 34, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)', flexShrink: 0 }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} style={{ padding: '22px 26px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+          {/* Info banner */}
+          <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '12px 14px', borderRadius: 10, background: 'rgba(5,150,105,0.07)', border: '1px solid rgba(5,150,105,0.2)' }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginTop: 1, flexShrink: 0 }}>
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <p style={{ margin: 0, fontSize: 12.5, color: '#059669', lineHeight: 1.5, fontWeight: 500 }}>
+              WFH requests require manager approval. You'll be notified once reviewed.
+            </p>
+          </div>
+
+          {/* Date range */}
+          <div>
+            <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', display: 'block', marginBottom: 10 }}>
+              Date Range <span style={{ color: 'var(--color-danger)' }}>*</span>
+            </label>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              {[['from_date', 'From Date'], ['to_date', 'To Date']].map(([key, lbl]) => (
+                <div key={key}>
+                  <p style={{ margin: '0 0 5px', fontSize: 12, color: 'var(--color-text-muted)', fontWeight: 600 }}>{lbl}</p>
+                  <input type="date" value={form[key]} onChange={e => set(key, e.target.value)}
+                    min={key === 'to_date' ? form.from_date : undefined}
+                    style={inputStyle} />
+                </div>
+              ))}
+            </div>
+            {days > 0 && (
+              <div style={{ marginTop: 10, padding: '10px 14px', borderRadius: 9, background: 'rgba(5,150,105,0.07)', border: '1px solid rgba(5,150,105,0.2)', display: 'flex', alignItems: 'center', gap: 7 }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#059669' }}>
+                  {days} day{days !== 1 ? 's' : ''} requested
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Reason */}
+          <div>
+            <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', display: 'block', marginBottom: 8 }}>
+              Reason <span style={{ color: 'var(--color-danger)' }}>*</span>
+            </label>
+            <textarea value={form.reason} onChange={e => set('reason', e.target.value)} rows={3}
+              placeholder="Describe why you need to work from home (min. 10 characters)…"
+              style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6 }} />
+            <p style={{ margin: '4px 0 0', fontSize: 11.5, color: form.reason.length >= 10 ? 'var(--color-success)' : 'var(--color-text-light)', textAlign: 'right', fontWeight: 500 }}>
+              {form.reason.length} / 10 min
+            </p>
+          </div>
+
+          {/* Actions */}
+          <div style={{ display: 'flex', gap: 10, paddingTop: 4 }}>
+            <button type="button" onClick={onClose} style={{ flex: 1, padding: '11px', border: '1px solid var(--color-border)', borderRadius: 9, background: 'var(--color-bg-subtle)', color: 'var(--color-text)', fontSize: 13.5, fontWeight: 600, cursor: 'pointer' }}>
+              Cancel
+            </button>
+            <button type="submit" disabled={saving} style={{ flex: 2, padding: '11px', border: 'none', borderRadius: 9, background: saving ? 'var(--color-border)' : 'linear-gradient(135deg, #059669, #047857)', color: saving ? 'var(--color-text-muted)' : '#fff', fontSize: 13.5, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', boxShadow: saving ? 'none' : '0 4px 14px rgba(5,150,105,0.3)', transition: 'all 0.2s' }}>
+              {saving ? 'Submitting…' : 'Submit WFH Request'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ── WFH Record Row ────────────────────────────────────────────────────────────
+function WfhRow({ wfh, onCancel }) {
+  const status = getStatus(wfh.status);
+  const days = Math.max(1, Math.floor((new Date(wfh.to_date) - new Date(wfh.from_date)) / 86400000) + 1);
+
+  return (
+    <div style={{
+      background: 'var(--color-card)', borderRadius: 12,
+      border: '1px solid var(--color-border)', borderLeft: '4px solid #059669',
+      padding: '16px 20px', display: 'flex', alignItems: 'flex-start', gap: 16,
+      transition: 'box-shadow 0.15s',
+    }}
+      onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.07)'; }}
+      onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; }}>
+
+      <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(5,150,105,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+      </div>
+
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-text)' }}>Work From Home</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#059669', background: 'rgba(5,150,105,0.1)', padding: '2px 9px', borderRadius: 6, border: '1px solid rgba(5,150,105,0.2)' }}>
+              {days} day{days !== 1 ? 's' : ''}
+            </span>
+          </div>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 20, fontSize: 11.5, fontWeight: 700, background: status.bg, color: status.color, border: `1px solid ${status.border}`, whiteSpace: 'nowrap', flexShrink: 0 }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: status.dot, display: 'block' }} />
+            {status.label}
+          </span>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: wfh.reason ? 8 : 0 }}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-light)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <span style={{ fontSize: 12.5, color: 'var(--color-text-muted)', fontWeight: 500 }}>
+            {formatDate(wfh.from_date)}
+            {wfh.from_date !== wfh.to_date && <> &rarr; {formatDate(wfh.to_date)}</>}
+          </span>
+        </div>
+
+        {wfh.reason && (
+          <p style={{ margin: 0, fontSize: 12.5, color: 'var(--color-text-muted)', lineHeight: 1.5, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+            {wfh.reason}
+          </p>
+        )}
+
+        {wfh.approval_comment && (
+          <div style={{ display: 'flex', gap: 7, alignItems: 'flex-start', background: 'var(--color-bg-subtle)', borderRadius: 8, padding: '7px 10px', marginTop: 8, border: '1px solid var(--color-border)' }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginTop: 1, flexShrink: 0 }}><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+            <span style={{ fontSize: 12, color: 'var(--color-text-muted)', fontStyle: 'italic', lineHeight: 1.5 }}>{wfh.approval_comment}</span>
+          </div>
+        )}
+      </div>
+
+      {wfh.status === 'pending' && (
+        <button onClick={() => onCancel(wfh.id)} style={{ flexShrink: 0, padding: '5px 13px', border: '1px solid var(--color-danger-border)', borderRadius: 7, background: 'var(--color-danger-bg)', color: 'var(--color-danger)', fontSize: 12, fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap' }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-danger)'; e.currentTarget.style.color = '#fff'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'var(--color-danger-bg)'; e.currentTarget.style.color = 'var(--color-danger)'; }}>
+          Cancel
+        </button>
+      )}
+    </div>
+  );
+}
+
 // ── Leave Record Row ──────────────────────────────────────────────────────────
 function LeaveRow({ leave, onCancel }) {
   const meta   = getMeta(leave.type);
@@ -317,12 +495,15 @@ function LeaveRow({ leave, onCancel }) {
 export default function LeavePage() {
   const { user, session } = useAuth();
   const { on } = useSocket(user?.id, session?.access_token);
-  const [leaves,  setLeaves]  = useState([]);
-  const [balance, setBalance] = useState({});
-  const [used,    setUsed]    = useState({});
-  const [loading, setLoading] = useState(true);
+  const [leaves,     setLeaves]     = useState([]);
+  const [wfhRequests, setWfhRequests] = useState([]);
+  const [balance,    setBalance]    = useState({});
+  const [used,       setUsed]       = useState({});
+  const [loading,    setLoading]    = useState(true);
+  const [wfhLoading, setWfhLoading] = useState(true);
   const [activeTab,  setActiveTab]  = useState('all');
-  const [showModal, setShowModal] = useState(false);
+  const [showModal,    setShowModal]    = useState(false);
+  const [showWfhModal, setShowWfhModal] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -334,11 +515,22 @@ export default function LeavePage() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  const fetchWfh = useCallback(async () => {
+    setWfhLoading(true);
+    try {
+      const res = await api.get('/api/wfh');
+      if (res.data.success) setWfhRequests(res.data.data.wfh_requests || []);
+    } catch {}
+    setWfhLoading(false);
+  }, []);
+
+  useEffect(() => { fetchData(); fetchWfh(); }, [fetchData, fetchWfh]);
   useEffect(() => {
     if (!user) return;
-    return on('leave:updated', fetchData);
-  }, [user, on, fetchData]);
+    const offLeave = on('leave:updated', fetchData);
+    const offWfh   = on('wfh:updated',   fetchWfh);
+    return () => { offLeave?.(); offWfh?.(); };
+  }, [user, on, fetchData, fetchWfh]);
 
   const handleCancel = async (id) => {
     if (!confirm('Cancel this leave request?')) return;
@@ -346,6 +538,17 @@ export default function LeavePage() {
       await api.patch(`/api/leave/${id}/cancel`);
       toast.success('Leave request cancelled');
       fetchData();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to cancel');
+    }
+  };
+
+  const handleCancelWfh = async (id) => {
+    if (!confirm('Cancel this WFH request?')) return;
+    try {
+      await api.patch(`/api/wfh/${id}/cancel`);
+      toast.success('WFH request cancelled');
+      fetchWfh();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to cancel');
     }
@@ -387,12 +590,20 @@ export default function LeavePage() {
               <p style={{ margin: '3px 0 0', fontSize: 13, color: 'var(--color-text-muted)' }}>Track your leave balance and manage requests</p>
             </div>
           </div>
-          <button onClick={() => setShowModal(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '11px 22px', border: 'none', borderRadius: 10, background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', color: '#fff', fontSize: 13.5, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 14px rgba(37,99,235,0.28)', transition: 'opacity 0.15s, transform 0.15s' }}
-            onMouseEnter={e => { e.currentTarget.style.opacity = '0.9'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
-            onMouseLeave={e => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.transform = ''; }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Apply for Leave
-          </button>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <button onClick={() => setShowWfhModal(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '11px 20px', border: '1.5px solid rgba(5,150,105,0.4)', borderRadius: 10, background: 'rgba(5,150,105,0.08)', color: '#059669', fontSize: 13.5, fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(5,150,105,0.15)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(5,150,105,0.08)'; e.currentTarget.style.transform = ''; }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+              Work From Home
+            </button>
+            <button onClick={() => setShowModal(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '11px 22px', border: 'none', borderRadius: 10, background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', color: '#fff', fontSize: 13.5, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 14px rgba(37,99,235,0.28)', transition: 'opacity 0.15s, transform 0.15s' }}
+              onMouseEnter={e => { e.currentTarget.style.opacity = '0.9'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+              onMouseLeave={e => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.transform = ''; }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Apply for Leave
+            </button>
+          </div>
         </div>
 
         {/* ── KPI Balance Cards ── */}
@@ -482,6 +693,62 @@ export default function LeavePage() {
             )}
           </div>
         </div>
+
+        {/* ── WFH History ── */}
+        <div style={{ background: 'var(--color-card)', borderRadius: 16, border: '1px solid var(--color-border)', overflow: 'hidden', boxShadow: '0 1px 8px rgba(0,0,0,0.04)' }}>
+          <div style={{ padding: '18px 20px 16px', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--color-bg-subtle)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 34, height: 34, borderRadius: 9, background: 'rgba(5,150,105,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+                </svg>
+              </div>
+              <div>
+                <h3 style={{ margin: 0, fontSize: 14.5, fontWeight: 800, color: 'var(--color-text)' }}>Work From Home Requests</h3>
+                <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--color-text-muted)' }}>Your WFH request history</p>
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 12, color: 'var(--color-text-light)', fontWeight: 500 }}>
+                {wfhRequests.length} record{wfhRequests.length !== 1 ? 's' : ''}
+              </span>
+              <button onClick={() => setShowWfhModal(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', border: '1.5px solid rgba(5,150,105,0.35)', borderRadius: 8, background: 'rgba(5,150,105,0.07)', color: '#059669', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s' }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(5,150,105,0.14)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(5,150,105,0.07)'; }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                New Request
+              </button>
+            </div>
+          </div>
+
+          <div style={{ padding: 20 }}>
+            {wfhLoading ? (
+              <div style={{ padding: 40, textAlign: 'center' }}>
+                <div style={{ width: 28, height: 28, border: '3px solid var(--color-border)', borderTop: '3px solid #059669', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
+                <p style={{ fontSize: 13, color: 'var(--color-text-muted)', margin: 0 }}>Loading WFH requests…</p>
+              </div>
+            ) : wfhRequests.length === 0 ? (
+              <div style={{ padding: '40px 20px', textAlign: 'center' }}>
+                <div style={{ width: 52, height: 52, background: 'rgba(5,150,105,0.08)', borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px', border: '1px solid rgba(5,150,105,0.15)' }}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+                  </svg>
+                </div>
+                <p style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--color-text)', margin: '0 0 6px' }}>No WFH requests yet</p>
+                <p style={{ fontSize: 13, color: 'var(--color-text-muted)', margin: '0 0 16px' }}>Submit a request when you need to work from home.</p>
+                <button onClick={() => setShowWfhModal(true)} style={{ padding: '9px 22px', border: 'none', borderRadius: 9, background: '#059669', color: '#fff', fontSize: 13.5, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 12px rgba(5,150,105,0.28)' }}>
+                  Apply for WFH
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {wfhRequests.map(wfh => (
+                  <WfhRow key={wfh.id} wfh={wfh} onCancel={handleCancelWfh} />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {showModal && (
@@ -490,6 +757,12 @@ export default function LeavePage() {
           onSubmitted={() => { setShowModal(false); fetchData(); }}
           balance={balance}
           used={used}
+        />
+      )}
+      {showWfhModal && (
+        <ApplyWfhModal
+          onClose={() => setShowWfhModal(false)}
+          onSubmitted={() => { setShowWfhModal(false); fetchWfh(); }}
         />
       )}
     </AppLayout>
@@ -555,6 +828,15 @@ function EarnedLeaveIcon() {
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="8" r="6"/>
       <path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/>
+    </svg>
+  );
+}
+
+function WfhFormIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+      <polyline points="9 22 9 12 15 12 15 22"/>
     </svg>
   );
 }
