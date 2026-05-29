@@ -1,34 +1,29 @@
-# 🏢 HRMS — Human Resource Management System
+# HRMS — Human Resource Management System
 
-A **production-ready, full-stack HRMS** built with Next.js 14, Express.js, Supabase, and Socket.io — deployable on Vercel + Railway in minutes.
+A full-stack HRMS built with Next.js, Express.js, Supabase, and Socket.io.
 
-[![Backend CI](https://github.com/YOUR_USERNAME/hrms/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/YOUR_USERNAME/hrms/actions/workflows/backend-ci.yml)
-[![Frontend CI](https://github.com/YOUR_USERNAME/hrms/actions/workflows/frontend-ci.yml/badge.svg)](https://github.com/YOUR_USERNAME/hrms/actions/workflows/frontend-ci.yml)
+**Live:** [hrms-system-ochre.vercel.app](https://hrms-system-ochre.vercel.app)
 
 ---
 
-## 🏗 Tech Stack
+## Tech Stack
 
 | Layer | Technology |
 |---|---|
-| Frontend | Next.js 14 (App Router), Tailwind CSS |
+| Frontend | Next.js (App Router), Tailwind CSS |
 | Backend | Node.js 18+, Express.js |
-| Database | Supabase (PostgreSQL) |
+| Database | Supabase (PostgreSQL + RLS) |
 | Auth | Supabase Auth (JWT) |
 | Realtime | Socket.io |
-| Push Notifications | Firebase Cloud Messaging |
+| Push Notifications | Firebase Cloud Messaging (optional) |
 | Deployment | Vercel (frontend) + Railway (backend) |
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 hrms/
-├── .github/
-│   └── workflows/
-│       ├── backend-ci.yml      # Backend CI on push/PR
-│       └── frontend-ci.yml     # Frontend CI (build check)
 ├── supabase/
 │   └── migrations/
 │       ├── 001_create_tables.sql
@@ -42,224 +37,171 @@ hrms/
 │   ├── socket/
 │   ├── utils/
 │   ├── server.js
-│   ├── .env.example            ← copy to .env
-│   ├── railway.json            ← Railway deployment config
-│   └── Procfile
+│   ├── .env.example
+│   └── railway.json
 └── hrms-frontend/              # Next.js App
     ├── app/
     ├── components/
+    ├── context/
     ├── hooks/
     ├── lib/
     ├── utils/
-    ├── .env.example            ← copy to .env.local
-    └── vercel.json             ← Vercel deployment config
+    ├── .env.example
+    └── vercel.json
 ```
 
 ---
 
-## 🚀 Quick Start (Local Development)
+## Local Development
 
 ### Prerequisites
 - Node.js 18+
-- Supabase account ([supabase.com](https://supabase.com))
-- Firebase project (optional, for push notifications)
+- Supabase project ([supabase.com](https://supabase.com))
 
----
-
-### 1. Clone the repository
+### 1. Clone
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/hrms.git
-cd hrms
+git clone https://github.com/Ritikraja07/HRMS-System.git
+cd HRMS-System
 ```
-
----
 
 ### 2. Supabase Setup
 
-1. Create a new Supabase project at https://supabase.com
-2. Go to **SQL Editor** and run the migrations **in order**:
+1. Create a Supabase project
+2. Run migrations in order via SQL Editor:
    ```
    supabase/migrations/001_create_tables.sql
    supabase/migrations/002_rls_policies.sql
    supabase/migrations/003_seed_data.sql
    supabase/migrations/004_add_announcements.sql
    ```
-3. Enable **Email auth** in Authentication → Providers
-4. Go to **Storage** → create buckets:
-   - `avatars` (public)
-   - `payslips` (private)
-5. Copy your **Project URL**, **Anon Key**, **Service Role Key**, and **JWT Secret** from Settings → API
+3. Enable **Email** auth under Authentication → Providers
+4. Copy **Project URL**, **Anon Key**, **Service Role Key**, and **JWT Secret** from Settings → API
 
----
-
-### 3. Backend Setup
+### 3. Backend
 
 ```bash
 cd hrms-backend
 cp .env.example .env
-# Edit .env with your real values
 npm install
-npm run dev        # starts on http://localhost:4000
+npm run dev        # http://localhost:4000
 ```
 
-**`.env` variables:**
-
-| Variable | Where to find it |
+| Variable | Value |
 |---|---|
-| `PORT` | `4000` (local) |
+| `PORT` | `4000` |
+| `NODE_ENV` | `development` |
 | `SUPABASE_URL` | Supabase → Settings → API |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase → Settings → API |
-| `JWT_SECRET` | Supabase → Settings → API → JWT Secret |
-| `CORS_ORIGIN` | `http://localhost:3001` (local) or your Vercel URL |
-| `FIREBASE_SERVICE_ACCOUNT_JSON` | Firebase → Project Settings → Service Accounts |
+| `JWT_SECRET` | Supabase → Settings → API → JWT Settings |
+| `CORS_ORIGIN` | `http://localhost:3000` |
+| `FIREBASE_SERVICE_ACCOUNT_JSON` | Firebase service account JSON (optional) |
 
-> Health check available at: `GET http://localhost:4000/health`
+Health check: `GET http://localhost:4000/health`
 
----
-
-### 4. Frontend Setup
+### 4. Frontend
 
 ```bash
 cd hrms-frontend
 cp .env.example .env.local
-# Edit .env.local with your real values
 npm install
-npm run dev        # starts on http://localhost:3000
+npm run dev        # http://localhost:3000
 ```
-
-**`.env.local` variables:**
 
 | Variable | Value |
 |---|---|
-| `NEXT_PUBLIC_BACKEND_URL` | `http://localhost:4000` (local) |
+| `NEXT_PUBLIC_BACKEND_URL` | `http://localhost:4000` |
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase → Settings → API |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase → Settings → API |
-| `NEXT_PUBLIC_FIREBASE_*` | Firebase console (optional) |
-
-Open **http://localhost:3000**
+| `NEXT_PUBLIC_FIREBASE_*` | Firebase console (optional, use `dummy` to disable) |
 
 ---
 
-## 👤 Demo Credentials
+## Demo Credentials
 
 | Role | Email | Password |
 |---|---|---|
 | Admin | admin@hrms.com | HrmsPass@2025 |
 | Manager | manager1@hrms.com | HrmsPass@2025 |
-| Manager | manager2@hrms.com | HrmsPass@2025 |
 | Employee | employee1@hrms.com | HrmsPass@2025 |
-| Employee | employee2@hrms.com | HrmsPass@2025 |
-| Employee | employee3@hrms.com | HrmsPass@2025 |
-| Employee | employee4@hrms.com | HrmsPass@2025 |
-| Employee | employee5@hrms.com | HrmsPass@2025 |
 
-> These are seeded by `003_seed_data.sql` — change passwords in production!
+Seeded by `003_seed_data.sql`. Change passwords before going to production.
 
 ---
 
-## 🌟 Features
+## Features
 
 ### Employee
-- ⏱ Punch In / Out with live timer
-- 📅 Attendance calendar with monthly summary
-- 📋 Task management (CRUD)
-- 📁 Project dashboard
-- 💬 Real-time project chat (Socket.io)
-- 📆 Leave requests with balance tracking
-- 💰 Payslip viewer
-- 📝 Daily EOD updates with mood selector
-- 🔔 Push notifications (FCM)
-- 👤 Profile & avatar management
+- Punch In / Out with live timer
+- Attendance calendar with monthly summary
+- Task management (create, update, complete)
+- Project dashboard with real-time chat (Socket.io)
+- Leave requests with balance tracking
+- Payslip viewer
+- Daily EOD updates with mood selector
+- Push notifications (FCM)
+- Profile and avatar management
 
 ### Manager
-- 📊 Team dashboard with live attendance
-- ✅ Leave approval/rejection with comments
-- 👥 Team member overview
-- 📋 Task assignment
+- Team dashboard with live attendance feed
+- Leave approval / rejection with comments
+- Team member overview and task assignment
 
 ### Admin
-- 🛡 Admin dashboard with org-wide stats
-- 👥 Employee directory (activate/deactivate)
-- 🚀 Employee onboarding with auto account creation
-- 📊 Reports (attendance, payroll, tasks) with charts
-- 🕐 Shift schedule management
-- 📢 Announcements
+- Org-wide stats dashboard
+- Employee directory (onboard, activate, deactivate)
+- Payroll and payslip management
+- Reports (attendance, payroll, tasks) with charts
+- Shift schedule management
+- Announcements
 
 ---
 
-## 🚢 Deployment
+## Deployment
 
 ### Backend → Railway
 
-1. Push your code to GitHub
-2. Go to [railway.app](https://railway.app) → **New Project** → **Deploy from GitHub Repo**
-3. Select the `hrms` repository and set **Root Directory** to `hrms-backend`
-4. Add the following **Environment Variables** in Railway dashboard:
+1. Go to [railway.app](https://railway.app) → New Project → Deploy from GitHub Repo
+2. Select `Ritikraja07/HRMS-System`
+3. Under Service Settings set **Root Directory** to `hrms-backend`
+4. Add environment variables:
 
    | Key | Value |
    |---|---|
-   | `PORT` | `4000` |
    | `NODE_ENV` | `production` |
    | `SUPABASE_URL` | your Supabase URL |
    | `SUPABASE_SERVICE_ROLE_KEY` | your service role key |
    | `JWT_SECRET` | your JWT secret |
-   | `CORS_ORIGIN` | your Vercel URL (e.g. `https://hrms-app.vercel.app`) |
-   | `FIREBASE_SERVICE_ACCOUNT_JSON` | your Firebase service account JSON (single line) |
+   | `CORS_ORIGIN` | your Vercel frontend URL |
+   | `FIREBASE_SERVICE_ACCOUNT_JSON` | Firebase service account JSON (optional) |
 
-5. Railway auto-detects Node.js and runs `node server.js`
-6. Copy your Railway **public URL** (e.g. `https://hrms-backend.up.railway.app`)
+5. Railway auto-detects Node.js and runs `node server.js` (configured in `railway.json`)
+6. Copy the generated Railway URL
 
 ### Frontend → Vercel
 
-1. Go to [vercel.com](https://vercel.com) → **Add New Project** → Import your GitHub repo
+1. Go to [vercel.com](https://vercel.com) → Add New Project → Import `Ritikraja07/HRMS-System`
 2. Set **Root Directory** to `hrms-frontend`
-3. Framework preset: **Next.js** (auto-detected)
-4. Add the following **Environment Variables** in Vercel dashboard:
+3. Framework auto-detected as Next.js
+4. Add environment variables:
 
    | Key | Value |
    |---|---|
    | `NEXT_PUBLIC_BACKEND_URL` | your Railway URL |
    | `NEXT_PUBLIC_SUPABASE_URL` | your Supabase URL |
    | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | your anon key |
-   | `NEXT_PUBLIC_FIREBASE_API_KEY` | Firebase API key |
-   | `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | Firebase auth domain |
-   | `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | Firebase project ID |
-   | `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | Firebase sender ID |
-   | `NEXT_PUBLIC_FIREBASE_APP_ID` | Firebase app ID |
-   | `NEXT_PUBLIC_FIREBASE_VAPID_KEY` | Firebase VAPID key |
+   | `NEXT_PUBLIC_FIREBASE_*` | Firebase values (use `dummy` to disable) |
 
-5. Click **Deploy** — Vercel will build and deploy automatically
+5. Deploy
 
-> After deployment, update `CORS_ORIGIN` in Railway to your Vercel production URL and redeploy the backend.
+After both are deployed, update `CORS_ORIGIN` on Railway to your Vercel production URL and redeploy the backend.
 
 ---
 
-## 🔒 Security
+## Security
 
-- All API routes protected by JWT middleware
-- Role-based access control (admin / manager / employee)
-- Supabase Row Level Security (RLS) on all tables
-- Rate limiting on API endpoints (300 req/15min)
-- Strict rate limiting on auth endpoints (20 req/15min)
+- JWT-protected API routes with role-based access control
+- Supabase Row Level Security on all tables
+- Rate limiting: 300 req / 15 min general, 20 req / 15 min on auth endpoints
 - Helmet.js security headers
-
----
-
-## 🤝 Contributing
-
-1. Fork the repo
-2. Create a feature branch: `git checkout -b feature/your-feature`
-3. Commit your changes: `git commit -m 'feat: add some feature'`
-4. Push to the branch: `git push origin feature/your-feature`
-5. Open a Pull Request
-
----
-
-## 📞 Resources
-
-- [Supabase Docs](https://supabase.com/docs)
-- [Next.js Docs](https://nextjs.org/docs)
-- [Socket.io Docs](https://socket.io/docs)
-- [Railway Docs](https://docs.railway.app)
-- [Vercel Docs](https://vercel.com/docs)
+- CORS restricted to the configured frontend origin
