@@ -1,6 +1,8 @@
 <div align="center">
 
-![HRMS Banner](https://socialify.git.ci/Ritikraja07/HRMS-System/image?description=1&font=Inter&language=1&name=1&owner=1&pattern=Circuit+Board&theme=Dark)
+<h1>
+  <img src="https://img.shields.io/badge/🏢-HRMS-2563eb?style=for-the-badge" alt="" />
+</h1>
 
 # HRMS — Human Resource Management System
 
